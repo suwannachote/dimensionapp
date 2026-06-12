@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ลงข้อมูล Dimension สินค้า</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#F5F1EB;padding:1.5rem;min-height:100vh}
+:root{
+  --sage:#5C7A6B;--sage-light:#EAF0EC;--sage-mid:#B8CEBC;
+  --sand:#F5F1EB;--sand-dark:#E8E2D8;--warm-text:#3A3530;
+  --muted-text:#7A7168;--border:#D6CEC2;--white:#FDFCFA;--accent:#4A6859;
+  --tab-active-bg:#3A6350;--tab-active-text:#ffffff;--tab-active-border:#2D4F3F;
+}
+.app{max-width:780px;margin:0 auto}
+h2{font-size:17px;font-weight:500;color:var(--warm-text);margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.subtitle{font-size:13px;color:var(--muted-text);margin-bottom:1.5rem}
+.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.section-title{font-size:11px;font-weight:500;color:var(--sage);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:var(--muted-text);font-weight:500}
+.field input,.field select{font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--sand);color:var(--warm-text);width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--sage);background:var(--white)}
+.input-with-mic{display:flex;gap:6px;align-items:center}
+.input-with-mic input{flex:1}
+.mic-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--sand);color:var(--muted-text);cursor:pointer;flex-shrink:0}
+.mic-btn:hover{border-color:var(--sage-mid);color:var(--sage);background:var(--sage-light)}
+.mic-btn.recording{background:var(--sage-light);color:var(--accent);border-color:var(--sage-mid)}
+.transcript-box{background:var(--sand);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted-text);margin-top:6px;display:none}
+.transcript-box.active{display:block}
+.unit-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.unit-tab{padding:6px 16px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;background:var(--sand);color:var(--muted-text)}
+.unit-tab:hover{border-color:var(--sage-mid);color:var(--sage);background:var(--sage-light)}
+.unit-tab.active{background:var(--tab-active-bg);color:var(--tab-active-text);border-color:var(--tab-active-border)}
+.unit-section{display:none}.unit-section.active{display:block}
+.dim-row{display:grid;grid-template-columns:1fr 1fr 1fr 100px 1fr 76px;gap:10px;align-items:end}
+.btn-primary{padding:10px 22px;border-radius:8px;border:none;background:var(--sage);color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px}
+.btn-primary:hover{background:var(--accent)}
+.btn-secondary{padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--muted-text);font-size:13px;cursor:pointer}
+.btn-secondary:hover{background:var(--sand-dark)}
+.status-bar{padding:10px 14px;border-radius:8px;font-size:13px;display:none;align-items:center;gap:8px;margin-bottom:1rem}
+.status-bar.success{background:#EAF0EC;color:#3A6350;border:1px solid #B8CEBC;display:flex}
+.status-bar.error{background:#FBF0EE;color:#8B3A30;border:1px solid #E8C4BA;display:flex}
+.status-bar.info{background:#EEF3F8;color:#2E5575;border:1px solid #BDD0E0;display:flex}
+.url-wrap{background:var(--sand);border-radius:8px;padding:10px 14px;margin-bottom:1rem;border:1px solid var(--border)}
+.submit-row{display:flex;gap:8px}
+@media(max-width:600px){.dim-row{grid-template-columns:1fr 1fr;}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h2>📦 ลงข้อมูล Dimension สินค้า</h2>
+  <p class="subtitle">กรอกข้อมูลแล้วกด "บันทึกลง Google Sheet"</p>
+
+  <div id="statusBar" class="status-bar"><span id="statusMsg"></span></div>
+
+  <div class="card">
+    <div class="section-title">ข้อมูลสินค้า</div>
+    <div class="grid-2" style="margin-bottom:12px">
+      <div class="field"><label>วันที่</label><input type="date" id="dateInput"></div>
+      <div class="field">
+        <label>รหัสสินค้า *</label>
+        <div class="input-with-mic">
+          <input type="text" id="productCode" placeholder="เช่น R091-271-5">
+          <button class="mic-btn" id="micCode" onclick="toggleVoice('code')" title="พูดรหัสสินค้า">🎤</button>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>รายละเอียดสินค้า</label>
+      <div class="input-with-mic">
+        <input type="text" id="productDesc" placeholder="คำอธิบายสินค้า">
+        <button class="mic-btn" id="micDesc" onclick="toggleVoice('desc')" title="พูดรายละเอียด">🎤</button>
+      </div>
+    </div>
+    <div id="transcript" class="transcript-box"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Dimension ตามหน่วย</div>
+    <div class="unit-tabs">
+      <button class="unit-tab active" onclick="switchUnit(this,'pcs')">PCS / PAA</button>
+      <button class="unit-tab" onclick="switchUnit(this,'pack')">PACK</button>
+      <button class="unit-tab" onclick="switchUnit(this,'box')">BOX</button>
+      <button class="unit-tab" onclick="switchUnit(this,'car')">Carton</button>
+      <button class="unit-tab" onclick="switchUnit(this,'set')">SET</button>
+      <button class="unit-tab" onclick="switchUnit(this,'pair')">Pair</button>
+    </div>
+    <div id="unit-pcs" class="unit-section active"><div class="dim-row">
+      <div class="field"><label>กว้าง</label><input type="number" id="pcs-w" placeholder="0"></div>
+      <div class="field"><label>ยาว</label><input type="number" id="pcs-l" placeholder="0"></div>
+      <div class="field"><label>สูง</label><input type="number" id="pcs-h" placeholder="0"></div>
+      <div class="field"><label>หน่วย</label><select id="pcs-unit"><option>MM</option><option>CM</option><option>M</option><option>IN</option></select></div>
+      <div class="field"><label>น้ำหนัก (kg)</label><input type="number" id="pcs-wt" placeholder="0.00" step="0.01"></div>
+      <div class="field"><label>จำนวน</label><input type="number" id="pcs-qty" value="1"></div>
+    </div></div>
+    <div id="unit-pack" class="unit-section"><div class="dim-row">
+      <div class="field"><label>กว้าง</label><input type="number" id="pack-w" placeholder="0"></div>
+      <div class="field"><label>ยาว</label><input type="number" id="pack-l" placeholder="0"></div>
+      <div class="field"><label>สูง</label><input type="number" id="pack-h" placeholder="0"></div>
+      <div class="field"><label>หน่วย</label><select id="pack-unit"><option>MM</option><option>CM</option><option>M</option><option>IN</option></select></div>
+      <div class="field"><label>น้ำหนัก (kg)</label><input type="number" id="pack-wt" placeholder="0.00" step="0.01"></div>
+      <div class="field"><label>ชิ้น/Pack</label><input type="number" id="pack-qty" value="1"></div>
+    </div></div>
+    <div id="unit-box" class="unit-section"><div class="dim-row">
+      <div class="field"><label>กว้าง</label><input type="number" id="box-w" placeholder="0"></div>
+      <div class="field"><label>ยาว</label><input type="number" id="box-l" placeholder="0"></div>
+      <div class="field"><label>สูง</label><input type="number" id="box-h" placeholder="0"></div>
+      <div class="field"><label>หน่วย</label><select id="box-unit"><option>MM</option><option>CM</option><option>M</option><option>IN</option></select></div>
+      <div class="field"><label>น้ำหนัก (kg)</label><input type="number" id="box-wt" placeholder="0.00" step="0.01"></div>
+      <div class="field"><label>ชิ้น/Box</label><input type="number" id="box-qty" value="1"></div>
+    </div></div>
+    <div id="unit-car" class="unit-section"><div class="dim-row">
+      <div class="field"><label>กว้าง</label><input type="number" id="car-w" placeholder="0"></div>
+      <div class="field"><label>ยาว</label><input type="number" id="car-l" placeholder="0"></div>
+      <div class="field"><label>สูง</label><input type="number" id="car-h" placeholder="0"></div>
+      <div class="field"><label>หน่วย</label><select id="car-unit"><option>MM</option><option>CM</option><option>M</option><option>IN</option></select></div>
+      <div class="field"><label>น้ำหนัก (kg)</label><input type="number" id="car-wt" placeholder="0.00" step="0.01"></div>
+      <div class="field"><label>ชิ้น/Carton</label><input type="number" id="car-qty" value="1"></div>
+    </div></div>
+    <div id="unit-set" class="unit-section"><div class="dim-row">
+      <div class="field"><label>กว้าง</label><input type="number" id="set-w" placeholder="0"></div>
+      <div class="field"><label>ยาว</label><input type="number" id="set-l" placeholder="0"></div>
+      <div class="field"><label>สูง</label><input type="number" id="set-h" placeholder="0"></div>
+      <div class="field"><label>หน่วย</label><select id="set-unit"><option>MM</option><option>CM</option><option>M</option><option>IN</option></select></div>
+      <div class="field"><label>น้ำหนัก (kg)</label><input type="number" id="set-wt" placeholder="0.00" step="0.01"></div>
+      <div class="field"><label>ชิ้น/Set</label><input type="number" id="set-qty" value="1"></div>
+    </div></div>
+    <div id="unit-pair" class="unit-section"><div class="dim-row">
+      <div class="field"><label>กว้าง</label><input type="number" id="pair-w" placeholder="0"></div>
+      <div class="field"><label>ยาว</label><input type="number" id="pair-l" placeholder="0"></div>
+      <div class="field"><label>สูง</label><input type="number" id="pair-h" placeholder="0"></div>
+      <div class="field"><label>หน่วย</label><select id="pair-unit"><option>MM</option><option>CM</option><option>M</option><option>IN</option></select></div>
+      <div class="field"><label>น้ำหนัก (kg)</label><input type="number" id="pair-wt" placeholder="0.00" step="0.01"></div>
+      <div class="field"><label>ชิ้น/Pair</label><input type="number" id="pair-qty" value="1"></div>
+    </div></div>
+  </div>
+
+
+
+  <div class="submit-row">
+    <button class="btn-primary" onclick="submitData()">💾 บันทึกลง Google Sheet</button>
+    <button class="btn-secondary" onclick="clearForm()">ล้างข้อมูล</button>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbwRydgMUSSvyoyRQCSJiU4KMHLPzwJxXEmGzA6P-4dbWLN0QtlpY5zEoEsT2y7rU7-bQA/exec';
+document.getElementById('dateInput').value=new Date().toISOString().split('T')[0];
+
+function switchUnit(btn,u){
+  document.querySelectorAll('.unit-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.unit-section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('unit-'+u).classList.add('active');
+}
+function showStatus(msg,type){
+  const bar=document.getElementById('statusBar');
+  document.getElementById('statusMsg').textContent=msg;
+  bar.className='status-bar '+type;
+  setTimeout(()=>{bar.className='status-bar';},4000);
+}
+function collectData(){
+  const units=['pcs','pack','box','car','set','pair'];
+  const d={วันที่:document.getElementById('dateInput').value,รหัสสินค้า:document.getElementById('productCode').value,รายละเอียด:document.getElementById('productDesc').value};
+  units.forEach(u=>{['w','l','h','unit','wt','qty'].forEach(f=>{d[u+'_'+f]=document.getElementById(u+'-'+f).value;});});
+  return d;
+}
+async function submitData(){
+  const url=SCRIPT_URL;
+  const data=collectData();
+  if(!data.รหัสสินค้า){showStatus('กรุณากรอกรหัสสินค้าก่อนบันทึก','error');return;}
+  showStatus('กำลังบันทึก...','info');
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',body:JSON.stringify(data),headers:{'Content-Type':'application/json'}});
+    showStatus('บันทึกข้อมูลสำเร็จ!','success');
+  }catch(e){
+    showStatus('เชื่อมต่อไม่ได้: '+e.message,'error');
+  }
+}
+function clearForm(){
+  ['productCode','productDesc'].forEach(id=>{document.getElementById(id).value='';});
+  ['pcs','pack','box','car','set','pair'].forEach(u=>{
+    ['w','l','h','wt'].forEach(f=>{document.getElementById(u+'-'+f).value='';});
+    document.getElementById(u+'-qty').value=1;
+    document.getElementById(u+'-unit').value='MM';
+  });
+  document.getElementById('transcript').className='transcript-box';
+  showStatus('ล้างข้อมูลแล้ว','info');
+}
+let recognition=null,isRecording=false,activeTarget=null;
+function toggleVoice(target){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){showStatus('เบราว์เซอร์ไม่รองรับ Voice Input','error');return;}
+  if(isRecording){recognition&&recognition.stop();return;}
+  activeTarget=target;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.lang='th-TH';recognition.continuous=false;recognition.interimResults=true;
+  const btnId=target==='code'?'micCode':'micDesc';
+  const t=document.getElementById('transcript');
+  recognition.onstart=()=>{isRecording=true;document.getElementById(btnId).classList.add('recording');t.className='transcript-box active';t.textContent='กำลังฟัง...';};
+  recognition.onresult=(e)=>{
+    const txt=Array.from(e.results).map(r=>r[0].transcript).join('');
+    t.textContent=txt;
+    if(e.results[0].isFinal){
+      if(activeTarget==='code') document.getElementById('productCode').value=txt.trim();
+      else document.getElementById('productDesc').value=txt.trim();
+      t.textContent='บันทึกแล้ว: '+txt.trim();
+    }
+  };
+  recognition.onend=()=>{isRecording=false;document.getElementById(btnId).classList.remove('recording');};
+  recognition.start();
+}
+</script>
+</body>
+</html>
